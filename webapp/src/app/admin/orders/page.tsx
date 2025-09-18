@@ -1,7 +1,7 @@
 // src/app/admin/orders/page.tsx
 "use client";
 import React, { useEffect, useState } from "react";
-import OrderRow from "../../../components/admin/OrderRow";
+import OrderRow from '../../../components/admin/OrderRow';
 import { fetchMerchantOrders, updateOrderStatus } from "../../../lib/adminApi";
 
 type Order = any;
