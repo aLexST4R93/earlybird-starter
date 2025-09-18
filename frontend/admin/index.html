@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Earlybird Admin — Dashboard</title>
+<style>
+  body{font-family:Inter,system-ui;margin:0;background:#f6f7fb;color:#111}
+  header{background:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee}
+  .layout{display:flex;gap:20px;max-width:1100px;margin:20px auto;padding:0 16px}
+  .sidebar{width:260px}
+  .content{flex:1}
+  .card{background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.05);margin-bottom:12px}
+  .shops-list .shop-row{padding:10px;border-bottom:1px solid #f2f4f7;display:flex;justify-content:space-between;align-items:center}
+  .btn{background:#3b82f6;color:white;padding:8px 10px;border-radius:6px;border:none;cursor:pointer}
+  .link{color:#3b82f6;cursor:pointer;text-decoration:underline}
+</style>
+</head>
+<body>
+<header>
+  <div><strong>Earlybird Admin</strong></div>
+  <div id="merchantName"></div>
+</header>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><strong>Filialen</strong></div>
+        <div><button id="btnRefresh" class="btn">Refresh</button></div>
+      </div>
+      <div id="shopsList" class="shops-list" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="card">
+      <h3>Übersicht</h3>
+      <div style="display:flex;gap:12px;margin-top:8px">
+        <div style="flex:1;padding:10px;border-radius:8px;background:#f8fafc">
+          <div class="small">Umsatz (alle Filialen)</div>
+          <div id="totalRevenue" style="font-size:20px;font-weight:700">0,00 €</div>
+        </div>
+        <div style="flex:1;padding:10px;border-radius:8px;background:#fff">
+          <div class="small">Offene Bestellungen</div>
+          <div id="openOrders" style="font-size:20px;font-weight:700">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ordersCard" class="card hidden">
+      <h3>Bestellungen — <span id="ordersShopName"></span></h3>
+      <div id="ordersList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = 'http://localhost:3000/merchant';
+const token = localStorage.getItem('earlybird_token');
+if(!token){ window.location.href = 'login.html'; }
+
+const authHeaders = { Authorization: 'Bearer ' + token, 'Content-Type':'application/json' };
+
+const merchant = JSON.parse(localStorage.getItem('earlybird_merchant') || '{}');
+document.getElementById('merchantName').textContent = merchant.name || '';
+
+async function loadShops(){
+  const res = await fetch(API_BASE + '/shops', { headers: authHeaders });
+  if(!res.ok){ if(res.status===401) { localStorage.removeItem('earlybird_token'); window.location.href='login.html'; } return; }
+  const data = await res.json();
+  const wrap = document.getElementById('shopsList');
+  wrap.innerHTML = '';
+  data.forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'shop-row';
+    row.innerHTML = `<div>
+      <div style="font-weight:700">${s.name}</div>
+      <div class="small">${s.address || ''}</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" onclick="openShop('${s.id}','${s.name.replace(/'/g,'\\\'')}')">Öffnen</button>
+    </div>`;
+    wrap.appendChild(row);
+  });
+  // compute global revenue & open orders
+  let totalRevenue = 0;
+  let openOrdersCount = 0;
+  for(const s of data){
+    const r = await fetch(API_BASE + '/shops/' + s.id + '/report', { headers: authHeaders });
+    if(r.ok){
+      const j = await r.json();
+      totalRevenue += (j.revenue || 0);
+      openOrdersCount += (j.ordersCount || 0);
+    }
+  }
+  document.getElementById('totalRevenue').textContent = (totalRevenue || 0).toFixed(2).replace('.',',') + ' €';
+  document.getElementById('openOrders').textContent = openOrdersCount;
+}
+
+window.openShop = async function(shopId, name){
+  document.getElementById('ordersCard').classList.remove('hidden');
+  document.getElementById('ordersShopName').textContent = name;
+  const res = await fetch(API_BASE + '/shops/' + shopId + '/orders', { headers: authHeaders });
+  if(!res.ok){ alert('Fehler beim Laden der Bestellungen'); return; }
+  const list = await res.json();
+  const wrap = document.getElementById('ordersList');
+  wrap.innerHTML = '';
+  if(!list || list.length ===0){ wrap.innerHTML = '<div class="small">Keine Bestellungen</div>'; return; }
+  list.forEach(o => {
+    const div = document.createElement('div');
+    div.style.borderBottom = '1px solid #f2f5f8';
+    div.style.padding = '10px 0';
+    div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div><strong>${o.id}</strong> — ${o.items.map(i=>i.qty+'x '+i.product_id).join(', ')}</div>
+        <div class="small">${o.created_at} • Slot: ${o.pickup_slot} • Tel: ${o.phone||'-'}</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div style="font-weight:700">${(o.total||0).toFixed(2).replace('.',',')} €</div>
+        <select data-id="${o.id}" onchange="changeStatus(this)">
+          <option ${o.status==='received'?'selected':''} value="received">eingegangen</option>
+          <option ${o.status==='in_preparation'?'selected':''} value="in_preparation">in Vorbereitung</option>
+          <option ${o.status==='ready'?'selected':''} value="ready">fertig</option>
+          <option ${o.status==='picked_up'?'selected':''} value="picked_up">abgeholt</option>
+        </select>
+      </div>
+    </div>`;
+    wrap.appendChild(div);
+  });
+};
+
+window.changeStatus = async function(sel){
+  const id = sel.dataset.id;
+  const newStatus = sel.value;
+  const res = await fetch(API_BASE + '/orders/' + id, {
+    method: 'PATCH',
+    headers: authHeaders,
+    body: JSON.stringify({ status: newStatus })
+  });
+  if(!res.ok){ alert('Fehler beim Aktualisieren'); return; }
+  alert('Status aktualisiert');
+};
+
+document.getElementById('btnRefresh').onclick = loadShops;
+
+loadShops();
+</script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Earlybird — Checkout Demo</title>
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; display:flex; justify-content:center; padding:24px; }
+    .card { width:420px; background:#fff; border-radius:12px; padding:20px; box-shadow:0 6px 20px rgba(0,0,0,0.08); }
+    h2 { margin:0 0 12px }
+    label { display:block; margin-top:12px; font-size:13px; color:#444; }
+    #card-element { padding:12px; border:1px solid #e6e9ee; border-radius:8px; margin-top:8px; }
+    button { margin-top:16px; width:100%; padding:12px; background:#3b82f6; color:#fff; border:none; border-radius:8px; font-weight:600; }
+    .small { font-size:13px; color:#666; margin-top:8px; }
+    #status { margin-top:12px; color:green; font-weight:600; }
+    #error { margin-top:12px; color:#b00020; }
+  </style>
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+  <div class="card">
+    <h2>Earlybird — Checkout Demo</h2>
+
+    <div id="info" class="small">Produkt: Brötchen gemischt (5er) — 1,90 €</div>
+
+    <label for="phone">Telefonnummer (optional)</label>
+    <input id="phone" type="text" placeholder="+49..." style="width:100%;padding:8px;border-radius:8px;border:1px solid #e6e9ee" />
+
+    <label>Zahlung</label>
+    <div id="card-element"></div>
+    <div id="error"></div>
+
+    <button id="pay">Jetzt bezahlen</button>
+    <div id="status"></div>
+  </div>
+
+  <script>
+    // ---------- Konfiguration: setze hier deinen Publishable Key ----------
+    const STRIPE_PUBLISHABLE_KEY = "pk_test_51S4jYKHvJv1nCEKYP3cKRW7ytwgIkSUG2wfnBR9Vw36Tsge32QywfrsvE23nHIKh9ASH8CzfLp9Rbcu6DxmQcC6d00dnJXdnub";
+    // Backend Basis-URL (dein laufendes Backend)
+    const BACKEND_BASE = "http://localhost:3001";
+
+    if (!STRIPE_PUBLISHABLE_KEY || STRIPE_PUBLISHABLE_KEY.includes("DEIN")) {
+      document.getElementById('error').textContent = "Bitte in checkout.html den STRIPE_PUBLISHABLE_KEY setzen.";
+      document.getElementById('pay').disabled = true;
+      throw new Error("Publishable key missing");
+    }
+
+    const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+    const elements = stripe.elements();
+    const cardEl = elements.create('card', { style: { base: { fontSize: '16px' } } });
+    cardEl.mount('#card-element');
+
+    const statusDiv = document.getElementById('status');
+    const errorDiv = document.getElementById('error');
+    const payBtn = document.getElementById('pay');
+
+    payBtn.addEventListener('click', async () => {
+      errorDiv.textContent = ""; statusDiv.textContent = "Erstelle Bestellung...";
+      payBtn.disabled = true;
+
+      // 1) Bestellung beim Backend anlegen (reserviert + PaymentIntent erzeugt)
+      const body = {
+        shop_id: "hemmerle",
+        items: [{ product_id: "p1", qty: 1, price: 1.9 }],
+        pickup_slot: "t1",
+        phone: document.getElementById('phone').value || null
+      };
+
+      let res;
+      try {
+        res = await fetch(BACKEND_BASE + "/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+      } catch (err) {
+        errorDiv.textContent = "Netzwerkfehler beim Anlegen der Bestellung.";
+        payBtn.disabled = false;
+        return;
+      }
+
+      const data = await res.json();
+      if (!res.ok) {
+        errorDiv.textContent = "Fehler beim Anlegen der Bestellung: " + (data.error || JSON.stringify(data));
+        payBtn.disabled = false;
+        return;
+      }
+
+      // Backend gab client_secret zurück
+      const clientSecret = data.client_secret;
+      if (!clientSecret) {
+        // Wenn kein PaymentIntent erzeugt, Backend arbeitet ggf. ohne Stripe -> Simuliere Erfolg
+        statusDiv.textContent = "Bestellt (ohne Onlinezahlung)";
+        payBtn.disabled = false;
+        return;
+      }
+
+      statusDiv.textContent = "Zahle (Stripe)...";
+
+      // 2) Stripe.js confirm card payment (Testkarten wie 4242 4242 4242 4242)
+      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: { card: cardEl }
+      });
+
+      if (error) {
+        errorDiv.textContent = "Zahlung fehlgeschlagen: " + error.message;
+        // Optional: call backend to release reservation if PaymentIntent failed
+        payBtn.disabled = false;
+        return;
+      }
+
+      if (paymentIntent && paymentIntent.status === "succeeded") {
+        statusDiv.textContent = "Zahlung erfolgreich — Bestellung bestätigt!";
+        payBtn.disabled = false;
+      } else {
+        statusDiv.textContent = "Status: " + (paymentIntent ? paymentIntent.status : "unknown");
+        payBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

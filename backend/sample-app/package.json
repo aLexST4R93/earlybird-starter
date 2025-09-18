@@ -1,0 +1,23 @@
+{
+  "name": "earlybird-api-stub",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node index.js",
+    "lint": "echo \"Add ESLint/Prettier later\""
+  },
+  "dependencies": {
+    "async-mutex": "^0.5.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "ioredis": "^5.7.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "stripe": "^18.5.0",
+    "uuid": "^9.0.1"
+  }
+}

@@ -1,0 +1,109 @@
+openapi: 3.0.3
+info:
+  title: Earlybird API
+  version: 0.2.0
+servers:
+  - url: http://localhost:3000
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /auth/register:
+    post:
+      summary: Register
+      requestBody:
+        required: true
+      responses:
+        "201":
+          description: Created
+  /auth/login:
+    post:
+      summary: Login
+      requestBody:
+        required: true
+      responses:
+        "200":
+          description: OK
+  /shops:
+    get:
+      summary: List shops
+      responses:
+        "200":
+          description: OK
+  /shops/{id}:
+    get:
+      summary: Get shop by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not found
+  /products/by-shop/{shopId}:
+    get:
+      summary: List products by shop
+      parameters:
+        - in: path
+          name: shopId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+  /slots/shops/{id}/slots:
+    get:
+      summary: List pickup slots (today/tomorrow)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: date
+          required: false
+          schema: { type: string, enum: [today, tomorrow] }
+      responses:
+        "200":
+          description: OK
+  /orders:
+    post:
+      summary: Create order
+      requestBody:
+        required: true
+      responses:
+        "201":
+          description: Created
+  /orders/{id}:
+    get:
+      summary: Get order
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not found
+  /payments/stripe/webhook:
+    post:
+      summary: Stripe webhook
+      responses:
+        "200":
+          description: Received
+  /payments/paypal/webhook:
+    post:
+      summary: PayPal webhook
+      responses:
+        "200":
+          description: Received

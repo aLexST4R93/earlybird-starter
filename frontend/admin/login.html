@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Earlybird Admin — Login</title>
+<style>
+  body{font-family:Inter,system-ui;margin:0;background:#f3f4f6}
+  .box{max-width:420px;margin:80px auto;padding:24px;background:#fff;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.08)}
+  h2{margin:0 0 12px}
+  input{width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ddd}
+  button{background:#3b82f6;color:white;border:none;padding:10px 14px;border-radius:6px;cursor:pointer;width:100%}
+  .small{font-size:13px;color:#6b7280}
+  .error{color:#ef4444}
+</style>
+</head>
+<body>
+  <div class="box">
+    <h2>Earlybird — Bäcker Login</h2>
+    <div class="small">Demo Login: admin@hemmerle.example / password123</div>
+    <div id="msg" class="error"></div>
+    <input id="email" placeholder="E-Mail" type="text" />
+    <input id="password" placeholder="Passwort" type="password" />
+    <button id="btnLogin">Einloggen</button>
+  </div>
+
+<script>
+const API_BASE = "/api-proxy"; // see note below or change to http://localhost:3000/merchant
+// For quick local test, set API_BASE = 'http://localhost:3000/merchant'
+
+const base = 'http://localhost:3000/merchant';
+
+document.getElementById('btnLogin').onclick = async () => {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
+  document.getElementById('msg').textContent = '';
+  if(!email || !password){ document.getElementById('msg').textContent = 'Bitte E-Mail und Passwort eingeben'; return;}
+  try {
+    const res = await fetch(base + '/login', { method:'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) });
+    const data = await res.json();
+    if(!res.ok){ document.getElementById('msg').textContent = data.error || 'Login fehlgeschlagen'; return; }
+    localStorage.setItem('earlybird_token', data.token);
+    localStorage.setItem('earlybird_merchant', JSON.stringify({ id: data.merchantId, name: data.name }));
+    window.location.href = 'index.html';
+  } catch(e){
+    document.getElementById('msg').textContent = 'Netzwerkfehler: ' + e.message;
+  }
+};
+</script>
+</body>
+</html>

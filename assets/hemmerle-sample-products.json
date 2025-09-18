@@ -1,0 +1,50 @@
+[
+  {
+    "id": "p1",
+    "shop_id": "hemmerle",
+    "name": "Brötchen gemischt (5er)",
+    "price": 1.9,
+    "currency": "EUR",
+    "allergens": ["Gluten"],
+    "ingredients": ["Weizenmehl", "Wasser", "Hefe", "Salz"],
+    "unit": "pack",
+    "available_today": true,
+    "slot_limit": 50
+  },
+  {
+    "id": "p2",
+    "shop_id": "hemmerle",
+    "name": "Croissant",
+    "price": 1.3,
+    "currency": "EUR",
+    "allergens": ["Gluten", "Milch", "Ei"],
+    "ingredients": ["Weizenmehl", "Butter", "Hefe", "Zucker", "Ei"],
+    "unit": "piece",
+    "available_today": true,
+    "slot_limit": 60
+  },
+  {
+    "id": "p3",
+    "shop_id": "hemmerle",
+    "name": "Vollkornbrot",
+    "price": 3.5,
+    "currency": "EUR",
+    "allergens": ["Gluten"],
+    "ingredients": ["Vollkornmehl", "Wasser", "Hefe", "Salz"],
+    "unit": "loaf",
+    "available_today": true,
+    "slot_limit": 30
+  },
+  {
+    "id": "p4",
+    "shop_id": "hemmerle",
+    "name": "Käsebrötchen",
+    "price": 1.5,
+    "currency": "EUR",
+    "allergens": ["Gluten", "Milch"],
+    "ingredients": ["Weizenmehl", "Käse", "Wasser", "Hefe", "Salz"],
+    "unit": "piece",
+    "available_today": true,
+    "slot_limit": 40
+  }
+]
