@@ -1,0 +1,21 @@
+# Node / Next / typical
+node_modules/
+.next/
+dist/
+out/
+
+# env files
+.env
+.env.local
+.env.*.local
+
+# logs and OS
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+.vscode/
+
+# build caches
+coverage/
+build/
